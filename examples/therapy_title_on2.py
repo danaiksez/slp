@@ -9,12 +9,12 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision.transforms import Compose
 from sklearn.model_selection import KFold
 
-from slp.data.collators import SequenceClassificationCollator
-from slp.data.therapy import PsychologicalDataset, TupleDataset
+from slp.data.collators_title import SequenceClassificationCollator
+from slp.data.therapy_title_on2 import PsychologicalDataset, TupleDataset
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor, ReplaceUnknownToken
-from slp.modules.hier_att_net import HierAttNet
+from slp.modules.hier_att_net_title import HierAttNet
 from slp.util.embeddings import EmbeddingsLoader
-from slp.trainer import SequentialTrainer
+from slp.trainer.trainer_title import SequentialTrainer
 
 #DEVICE = 'cpu'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -70,7 +70,7 @@ def trainer_factory(embeddings, device=DEVICE):
         hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings)
     model = model.to(DEVICE)
     criterion = nn.CrossEntropyLoss()
-    optimizer = Adam(model.parameters(), lr=0.001)
+    optimizer = Adam(model.parameters(), lr=0.0005)
 
     metrics = {
         'accuracy': Accuracy(),
@@ -112,16 +112,16 @@ if __name__ == '__main__':
     tokenizer = SpacyTokenizer()
     replace_unknowns = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(word2idx)
-#    to_tensor = ToTensor(device='cpu')
     to_tensor = ToTensor(device=DEVICE)
 
     bio = PsychologicalDataset(
-        '../data/balanced_new_csv.csv', '../data/psychotherapy/',
+        '../data/balanced_new_csv.csv', '../../../test_CEL/slp/data/psychotherapy/',
         text_transforms = Compose([
             tokenizer,
             replace_unknowns,
             to_token_ids,
             to_tensor]))
+
 
 
 
@@ -156,5 +156,4 @@ if __name__ == '__main__':
         print("-----------------------------------------------------------------------")
         trainer.overfit_single_batch(train_loader)
 #    else:
-#        print("started the else part")
 #        trainer.fit(train_loader, val_loader, epochs = epochs)

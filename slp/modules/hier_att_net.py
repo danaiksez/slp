@@ -35,7 +35,6 @@ class WordAttNet(nn.Module):
 
     def forward(self, inputs, lengths, hidden_state):
         output = self.lookup(inputs)
-        
         output, lengths = self.pack(output,lengths)
         f_output, h_output = self.gru(output.float(), hidden_state)
         f_output = self.unpack(f_output, lengths)
@@ -116,7 +115,6 @@ class HierAttNet(nn.Module):
             self.word_hidden_state = repackage_hidden(self.word_hidden_state)     
 
         # output_list_text = (S, B, 600)
-
         output_list_text = pad_sequence(output_list_text, padding_len=self.batch_size)
         output, self.sent_hidden_state = self.sent_att_net(output_list_text, lengths, self.sent_hidden_state)
         self.sent_hidden_state = repackage_hidden(self.sent_hidden_state)

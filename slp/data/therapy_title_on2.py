@@ -10,7 +10,12 @@ from torch.utils.data import Dataset
 def pad_sequence(sequences, batch_first=False, padding_len=None, padding_value=0):
     # assuming trailing dimensions and type of all the Tensors
     # in sequences are same and fetching those from sequences[0]
-    max_size = sequences[0].size()
+#    import pdb; pdb.set_trace()
+    try:
+        max_size = sequences[0].size()
+    except:
+        import pdb; pdb.set_trace()
+
     trailing_dims = max_size[1:]
     if padding_len is not None:
         max_len = padding_len
@@ -71,6 +76,8 @@ class PsychologicalDataset(Dataset):
         self.max_word_len = max_word_len
         self.text_transforms = text_transforms
         self.transcript, self.label, self.metadata, self.title = self.get_files_labels_metadata(self.root_dir, self.file)
+        self.patient_turns = ['CLIENT','PT','PATIENT','CL','Client','Danny','Juan',
+                                'PARTICIPANT','CG', 'RESPONDENT','F','Angie','Jeff', 'Bill']
 
 
     def get_files_labels_metadata(self, root_dir, _file):
@@ -117,24 +124,45 @@ class PsychologicalDataset(Dataset):
         title = self.title[idx]
         metadata = self.metadata[idx]
 
-
-
         if self.text_transforms is not None:
             lista = []
             turns = []
             p = strip_tags(preprocessed_text)
             p = p.split("\n")
+            p1 = [x for x in p if x!='']
 
-            p = [x for x in p if x!='']
-            
-            for i in p:
+#            import pdb; pdb.set_trace()
+            for (i, j) in zip(p1[::2], p1[1::2]):
                 i = i.split(":")
-                if len(i) == 2:
+                j = j.split(":")
+                if len(i)!= 1 and len(j)!= 1:
                     turns.append(i[0])
-                    lista.append(self.text_transforms(i[1]))
-            #import pdb; pdb.set_trace()
-            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
+                    turns.append(j[0])
+                    d = i[1] + ' ' + j[1]
+                    lista.append(self.text_transforms(d))
 
+            if len(lista) == 0:
+                for (i, j) in zip(p1[::2], p1[1::2]):
+                    i = i.split(":")
+                    j = j.split(":")
+                    if len(i)!= 1:
+                        turns.append(i[0])
+                        isum = i[1]
+                    else:
+                        isum = ''
+
+                    if len(j)!= 1:
+                        turns.append(j[0])
+                        jsum = j[1]
+                    else:
+                        jsum = ''
+                    d = isum + ' ' + jsum
+                    lista.append(self.text_transforms(d))
+
+            if len(lista) == 0:
+                import pdb; pdb.set_trace()
+
+            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
             preprocessed_title = self.text_transforms(title)
 
         lab = int("Depression (emotion)" in label)

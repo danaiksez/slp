@@ -11,7 +11,10 @@ def pad_sequence(sequences, batch_first=False, padding_len=None, padding_value=0
     # assuming trailing dimensions and type of all the Tensors
     # in sequences are same and fetching those from sequences[0]
 #    import pdb; pdb.set_trace()
-    max_size = sequences[0].size()
+    try:
+        max_size = sequences[0].size()
+    except:
+        import pdb; pdb.set_trace()
 
     trailing_dims = max_size[1:]
     if padding_len is not None:
@@ -73,6 +76,8 @@ class PsychologicalDataset(Dataset):
         self.max_word_len = max_word_len
         self.text_transforms = text_transforms
         self.transcript, self.label, self.metadata, self.title = self.get_files_labels_metadata(self.root_dir, self.file)
+        self.patient_turns = ['CLIENT','PT','PATIENT','CL','Client','Danny','Juan',
+                                'PARTICIPANT','CG', 'RESPONDENT','F','Angie','Jeff', 'Bill']
 
 
     def get_files_labels_metadata(self, root_dir, _file):
@@ -124,21 +129,22 @@ class PsychologicalDataset(Dataset):
             turns = []
             p = strip_tags(preprocessed_text)
             p = p.split("\n")
-
             p1 = [x for x in p if x!='']
-            p2 = [(x+ ' '+ y) for x,y in zip(p1[0::2], p1[1::2])]
-            
-            for i in p2:
-                i = i.split(":")
-                if len(i) is not 1:
-                    turns.append(i[0])
-                    lista.append(self.text_transforms(i[1]))
 
-#            padding_len = len(max(lista, key=len))
-#            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=padding_len)
+#            p2 = [(x+ ' '+ y) for x,y in zip(p1[0::2], p1[1::2])]   #wrong
+
+            for i in p1:
+                i = i.split(":")
+                if len(i) != 1:
+                    if any(s in i[0] for s in self.patient_turns):   
+                        turns.append(i[0])
+                        lista.append(self.text_transforms(i[1]))
+
+            if len(lista) == 0:
+                import pdb; pdb.set_trace()
+
             preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
             preprocessed_title = self.text_transforms(title)
 
         lab = int("Depression (emotion)" in label)
         return (preprocessed_text, preprocessed_title, lab)
-

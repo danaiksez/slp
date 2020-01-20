@@ -112,11 +112,10 @@ if __name__ == '__main__':
     tokenizer = SpacyTokenizer()
     replace_unknowns = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(word2idx)
-#    to_tensor = ToTensor(device='cpu')
     to_tensor = ToTensor(device=DEVICE)
 
     bio = PsychologicalDataset(
-        '../data/balanced_new_csv.csv', '../data/psychotherapy/',
+        '../data/balanced_new_csv.csv', '../../../test_CEL/slp/data/psychotherapy/',
         text_transforms = Compose([
             tokenizer,
             replace_unknowns,
@@ -124,30 +123,6 @@ if __name__ == '__main__':
             to_tensor]))
 
 
-#    train_loader, val_loader = train_test_split(bio, batch_train, batch_val, test_size=.2)
-
-
-    #model = HierAttNet(
-    #    hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings)
-    #model = model.to(DEVICE)
-    #criterion = nn.CrossEntropyLoss()
-    #optimizer = Adam(model.parameters(), lr=0.001) 
-
-    #metrics = {
-    #    'accuracy': Accuracy(),
-    #    'loss': Loss(criterion)
-    #}
-
-    
-    #trainer = SequentialTrainer(
-#	model,
-#	optimizer,
-#	checkpoint_dir='../checkpoints' if not DEBUG else None,
-#	metrics=metrics,
-#	non_blocking=True,
-#	patience=10,
-#	loss_fn=criterion,
-#	device=DEVICE)
 
 
     if KFOLD:
@@ -181,5 +156,4 @@ if __name__ == '__main__':
         print("-----------------------------------------------------------------------")
         trainer.overfit_single_batch(train_loader)
 #    else:
-#        print("started the else part")
 #        trainer.fit(train_loader, val_loader, epochs = epochs)
