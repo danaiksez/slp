@@ -26,6 +26,7 @@ class WordAttNet(nn.Module):
 
         self.word = nn.Linear(2 * hidden_size, 2 * hidden_size)
         self.context = nn.Linear(2 * hidden_size, 1, bias=False)
+
         self.diction = diction
         self.dict_size = dict_size
         self.lookup = nn.Embedding(num_embeddings = self.dict_size, embedding_dim =300).from_pretrained(self.diction)
@@ -34,8 +35,9 @@ class WordAttNet(nn.Module):
 
 
     def forward(self, inputs, lengths, hidden_state):
-        output = self.lookup(inputs)
         
+        import pdb; pdb.set_trace()
+        output = self.lookup(inputs)
         output, lengths = self.pack(output,lengths)
         f_output, h_output = self.gru(output.float(), hidden_state)
         f_output = self.unpack(f_output, lengths)
@@ -52,7 +54,6 @@ class SentAttNet(nn.Module):
         super(SentAttNet, self).__init__()
         num_classes = num_classes
         self.gru = nn.GRU(2 * hidden_size, 300, bidirectional=True, batch_first=True)
-
         self.sent = nn.Linear(2 * hidden_size, 2 * hidden_size)
         self.context = nn.Linear(2 * hidden_size, 1, bias=False)
         self.fc = nn.Linear(2 * hidden_size, num_classes)
@@ -66,11 +67,12 @@ class SentAttNet(nn.Module):
         f_output, h_output = self.gru(f_output, hidden_state)
         f_output = self.unpack(f_output, lengths)
 
+#        import pdb; pdb.set_trace()
         output = self.sent(f_output)
         output = self.context(output)
         output = F.softmax(output, dim=1)
         output = (f_output * output).sum(1)
-        output = self.fc(output).squeeze()
+#        output = self.fc(output).squeeze()
         return output, h_output
 
 
@@ -96,6 +98,7 @@ class HierAttNet(nn.Module):
             batch_size = self.batch_size
         self.word_hidden_state = torch.zeros(2, batch_size, self.hidden_size)
         self.sent_hidden_state = torch.zeros(2, batch_size, self.hidden_size)
+
         self.word_hidden_state = self.word_hidden_state.to(DEVICE)
         self.sent_hidden_state = self.sent_hidden_state.to(DEVICE)
 
@@ -116,7 +119,6 @@ class HierAttNet(nn.Module):
             self.word_hidden_state = repackage_hidden(self.word_hidden_state)     
 
         # output_list_text = (S, B, 600)
-
         output_list_text = pad_sequence(output_list_text, padding_len=self.batch_size)
         output, self.sent_hidden_state = self.sent_att_net(output_list_text, lengths, self.sent_hidden_state)
         self.sent_hidden_state = repackage_hidden(self.sent_hidden_state)

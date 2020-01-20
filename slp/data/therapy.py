@@ -10,9 +10,7 @@ from torch.utils.data import Dataset
 def pad_sequence(sequences, batch_first=False, padding_len=None, padding_value=0):
     # assuming trailing dimensions and type of all the Tensors
     # in sequences are same and fetching those from sequences[0]
-#    import pdb; pdb.set_trace()
     max_size = sequences[0].size()
-
     trailing_dims = max_size[1:]
     if padding_len is not None:
         max_len = padding_len
@@ -73,7 +71,10 @@ class PsychologicalDataset(Dataset):
         self.max_word_len = max_word_len
         self.text_transforms = text_transforms
         self.transcript, self.label, self.metadata, self.title = self.get_files_labels_metadata(self.root_dir, self.file)
-
+        self.patient_turns = ['CLIENT','PT','PATIENT','CL','Client','Danny','Juan',
+				'PARTICIPANT','CG', 'RESPONDENT','F','Angie','Jeff', 'Bill']
+        self.therapist_turns = ['THERAPIST','COUNSELOR','DR','M','Therapist','Marlatt',
+				'Lazarus','INTERVIEWER','TH','Scharff', 'T', 'Counselor', 'Wubbolding']
 
     def get_files_labels_metadata(self, root_dir, _file):
         included_cols = [1,11,12,13,14,15,16,20,22]
@@ -117,29 +118,34 @@ class PsychologicalDataset(Dataset):
         preprocessed_text = self.transcript[idx]
         label = self.label[idx].split("; ")
         title = self.title[idx]
-
         metadata = self.metadata[idx]
-#        import pdb; pdb.set_trace()
+
+
+
         if self.text_transforms is not None:
-            lista = []
+            therapist = []
+            patient = []
+            ensemble = []
             turns = []
             p = strip_tags(preprocessed_text)
             p = p.split("\n")
 
-            p1 = [x for x in p if x!='']
-            p2 = [(x+ ' '+ y) for x,y in zip(p1[0::2], p1[1::2])]
+            p = [x for x in p if x!='']
             
-            for i in p2:
-                i = i.split(":")
-                if len(i) is not 1:
-                    turns.append(i[0])
-                    lista.append(self.text_transforms(i[1]))
+            for i in p:
+                d = i.split(":")
+                if len(d) == 2:
+                    turns.append(d[0])
+                    if any(s in d[0] for s in self.patient_turns):                
+                        patient.append(self.text_transforms(d[1]))
+                    elif any(s in d[0] for s in self.therapist_turns):
+                        therapist.append(self.text_transforms(d[1]))
 
-#            padding_len = len(max(lista, key=len))
-#            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=padding_len)
-            preprocessed_text = pad_sequence(lista, batch_first=True, padding_len=self.max_word_len)
+                    ensemble.append(self.text_transforms(d[1]))
+            therapist = pad_sequence(therapist, batch_first=True, padding_len=self.max_word_len)
+            patient = pad_sequence(patient, batch_first=True, padding_len=self.max_word_len)
+            ensemble = pad_sequence(ensemble, batch_first=True, padding_len=self.max_word_len)
 
 
         lab = int("Depression (emotion)" in label)
-        return (preprocessed_text, lab)
-
+        return (therapist, patient, ensemble, lab)

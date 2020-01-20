@@ -154,7 +154,8 @@ class Trainer(object):
                    engine: Engine,
                    batch: List[torch.Tensor]) -> float:
         self.model.train()
-        #import pdb; pdb.set_trace()
+       # import pdb; pdb.set_trace()
+
         y_pred, targets = self.get_predictions_and_targets(batch)
         loss = self.loss_fn(y_pred, targets.long())  # type: ignore
         if self.parallel:
@@ -276,27 +277,15 @@ class AutoencoderTrainer(Trainer):
 
 
 class SequentialTrainer(Trainer):
-    def parse_batch(
-            self,
-            batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs = to_device(batch[0],
-                           device=self.device,
-                           non_blocking=self.non_blocking)
-        targets = to_device(batch[1],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        lengths = to_device(batch[2],
-                            device=self.device,
-                            non_blocking=self.non_blocking)
-        return inputs, targets, lengths
 
     def get_predictions_and_targets(
             self,
             batch: List[torch.Tensor]) -> Tuple[torch.Tensor, ...]:
-        inputs, targets, lengths = self.parse_batch(batch)
         #import pdb; pdb.set_trace()
-        y_pred = self.model(inputs, lengths)
+        y_pred, targets = self.model(batch)
         return y_pred, targets
+
+
 
 
 class Seq2seqTrainer(SequentialTrainer):

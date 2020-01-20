@@ -9,17 +9,18 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchvision.transforms import Compose
 from sklearn.model_selection import KFold
 
-from slp.data.collators import SequenceClassificationCollator
+from slp.data.collators import ThreeEncodersCollator
 from slp.data.therapy import PsychologicalDataset, TupleDataset
 from slp.data.transforms import SpacyTokenizer, ToTokenIds, ToTensor, ReplaceUnknownToken
 from slp.modules.hier_att_net import HierAttNet
 from slp.util.embeddings import EmbeddingsLoader
 from slp.trainer import SequentialTrainer
+from slp.modules.threeEncoders import ThreeEncoders
 
 #DEVICE = 'cpu'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-COLLATE_FN = SequenceClassificationCollator(device=DEVICE)
+COLLATE_FN = ThreeEncodersCollator(device=DEVICE)
 
 DEBUG = False
 KFOLD = True
@@ -66,8 +67,10 @@ def kfold_split(dataset, batch_train, batch_val, k=5, shuffle=True, seed=None):
         yield dataloaders_from_indices(dataset, train_indices, val_indices, batch_train, batch_val)
 
 def trainer_factory(embeddings, device=DEVICE):
-    model = HierAttNet(
-        hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings)
+#    model = HierAttNet(
+#        hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings)
+    model = ThreeEncoders(HierAttNet(hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings), 
+					device=DEVICE, hidden_size = 300, num_classes = 2)
     model = model.to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = Adam(model.parameters(), lr=0.001)
@@ -112,7 +115,6 @@ if __name__ == '__main__':
     tokenizer = SpacyTokenizer()
     replace_unknowns = ReplaceUnknownToken()
     to_token_ids = ToTokenIds(word2idx)
-#    to_tensor = ToTensor(device='cpu')
     to_tensor = ToTensor(device=DEVICE)
 
     bio = PsychologicalDataset(
@@ -124,30 +126,6 @@ if __name__ == '__main__':
             to_tensor]))
 
 
-#    train_loader, val_loader = train_test_split(bio, batch_train, batch_val, test_size=.2)
-
-
-    #model = HierAttNet(
-    #    hidden_size, batch_size, num_classes, max_sent_length, len(embeddings), embeddings)
-    #model = model.to(DEVICE)
-    #criterion = nn.CrossEntropyLoss()
-    #optimizer = Adam(model.parameters(), lr=0.001) 
-
-    #metrics = {
-    #    'accuracy': Accuracy(),
-    #    'loss': Loss(criterion)
-    #}
-
-    
-    #trainer = SequentialTrainer(
-#	model,
-#	optimizer,
-#	checkpoint_dir='../checkpoints' if not DEBUG else None,
-#	metrics=metrics,
-#	non_blocking=True,
-#	patience=10,
-#	loss_fn=criterion,
-#	device=DEVICE)
 
 
     if KFOLD:

@@ -3,6 +3,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence
 
 from slp.modules.util import pad_mask, subsequent_mask
 from slp.util import mktensor
+from slp.data.transforms import ToTensor
 
 
 class SequenceClassificationCollator(object):
@@ -11,15 +12,53 @@ class SequenceClassificationCollator(object):
         self.device = device
 
     def __call__(self, batch):
-        inputs, targets = map(list, zip(*batch))
+        inputs, titles, targets = map(list, zip(*batch))
         lengths = torch.tensor([len(s) for s in inputs], device=self.device)
+        lengths_title = torch.tensor([len(t) for t in titles], device=self.device)
+
         # Pad and convert to tensor
         inputs = (pad_sequence(inputs,
                                batch_first=True,
                                padding_value=self.pad_indx)
                   .to(self.device))
+        titles = (pad_sequence(titles,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+
         targets = mktensor(targets, device=self.device, dtype=torch.long)
-        return inputs, targets.to(self.device), lengths
+        return inputs, titles, targets.to(self.device), lengths, lengths_title
+
+class ThreeEncodersCollator(object):
+    def __init__(self, pad_indx=0, device='cpu'):
+        self.pad_indx = pad_indx
+        self.device = device
+
+    def __call__(self, batch):
+        therapist, patient, ensemble, targets = map(list, zip(*batch))
+        therapist_len = torch.tensor([len(s) for s in therapist], device=self.device)
+        patient_len = torch.tensor([len(t) for t in patient], device=self.device)
+        ensemble_len = torch.tensor([len(t) for t in ensemble], device=self.device)
+
+        # Pad and convert to tensor
+        therapist = (pad_sequence(therapist,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+
+        patient = (pad_sequence(patient,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+
+        ensemble = (pad_sequence(ensemble,
+                               batch_first=True,
+                               padding_value=self.pad_indx)
+                  .to(self.device))
+
+        targets = mktensor(targets, device=self.device, dtype=torch.long)
+        return therapist, patient, ensemble, therapist_len, patient_len, ensemble_len, targets.to(self.device)
+
 
 
 class TransformerCollator(object):
